@@ -1,5 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 
+// For more information:
+// https://discordjs.guide/creating-your-bot/slash-commands.html#before-you-continue
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('server')

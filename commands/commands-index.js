@@ -9,7 +9,9 @@ function readCommands() {
 	const foldersPath = path.join(__dirname);
 
 	// Get an array of directory names within the commands directory, filtering out all non-folder results (i.e. commands-index.js)
-	const commandFolders = fs.readdirSync(foldersPath, { withFileTypes: true }).filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+	const commandFolders = fs.readdirSync(foldersPath, { withFileTypes: true })
+		.filter(dirent => dirent.isDirectory())
+		.map(dirent => dirent.name);
 
 	for (const folder of commandFolders) {
 		const commandsPath = path.join(foldersPath, folder);
