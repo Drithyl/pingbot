@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const { Client, GatewayIntentBits } = require('discord.js');
 const readCommands = require('./commands/commands-index');
 const loadEvents = require('./events/events-index');
+const storage = require('./storage/storage-index');
 
 // Load the variables from the .env file into process.env
 dotenv.config();
@@ -15,6 +16,12 @@ client.commands = readCommands();
 
 // Read all event files and attach the listeners to the client
 loadEvents(client);
+
+// Connect to the database configured in our .env file
+storage.connect(process.env);
+
+// Create/sync the data from the database
+storage.loadModels();
 
 // Log in to Discord with your client's token
 client.login(process.env.DISCORD_TOKEN);
