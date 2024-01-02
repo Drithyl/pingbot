@@ -5,7 +5,9 @@ const readCommands = require('./commands/commands-index');
 const loadEvents = require('./events/events-index');
 const storage = require('./storage/storage-index');
 
-// Load the variables from the .env file into process.env
+// Load the variables from the .env file into process.env. More information:
+// https://www.npmjs.com/package/dotenv
+// https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs
 dotenv.config();
 
 // Create a new client instance
