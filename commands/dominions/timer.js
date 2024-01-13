@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { parseDominionsStatusTableHeaderText, parseTimer } = require('../../parser/parser-index');
+const { GameStatus } = require('../../parser/parser-index');
+const { HttpRequestError, HttpServerError, MissingHtmlError } = require('../../errors/errors-index');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -14,50 +15,43 @@ module.exports = {
 		const gameName = interaction.options.getString('name');
 
 		try {
-			// Parse the text inside the header of the game's HTML status table
-			const tableHeaderText = await parseDominionsStatusTableHeaderText(gameName);
+			// Fetch the game's HTML status page and parse it into an object
+			const newGameStatus = await GameStatus.parseGameStatus(gameName);
+			const timer = newGameStatus.timer;
 
-			// Extract the relevant data from the header of the table
-			const { turnNumber, daysLeft, hoursLeft, minutesLeft } = parseTimer(tableHeaderText);
-			const baseTimerString = `Turn ${turnNumber}`;
+			// If the game is in the pretender submission phase, there will be no timer
+			if (newGameStatus.isBeingSetUp === true) {
+				return interaction.reply('The game is being set up and hasn\'t started yet');
+			}
 
-			// No timer set if the header does not contain hours or minutes
-			if (daysLeft == null && hoursLeft == null && minutesLeft == null) {
-				return interaction.reply(`${baseTimerString}\nNo timer set.`);
-			}
-			// Otherwise format the timer into a readable string and send it
-			else {
-				const formattedTimer = _formatTimer(daysLeft, hoursLeft, minutesLeft);
-				return interaction.reply(`${baseTimerString}\n${formattedTimer} left.`);
-			}
+			// Notify of the timer in the channel with proper formatting
+			return interaction.reply(`Turn ${newGameStatus.turn}\n${_formatTimerAnnouncement(timer)}.`);
 		}
 		catch (error) {
+			if (error.name === HttpServerError.name) {
+				if (error.response.status === 404) {
+					return interaction.reply('The game was not found on the server. Are you sure the name is correct?');
+				}
+				return interaction.reply(`The server returned an error: ${error.code}`);
+			}
+			else if (error.name === HttpRequestError.name) {
+				return interaction.reply('The request received no answer from the server.');
+			}
+			else if (error.name === MissingHtmlError.name) {
+				return interaction.reply('The timer data could not be found on the game\'s status page.');
+			}
+
 			console.error(error);
 			return interaction.reply('Something went wrong when fetching the timer.');
 		}
 	},
 };
 
-function _formatTimer(days, hours, minutes) {
-	let formattedTimer = '';
-
-	if (days != null) {
-		formattedTimer += `${days} days, `;
+// Checks whether there's no timer at all, or whether to format one
+function _formatTimerAnnouncement(timer) {
+	if (timer.isNullTimer === true) {
+		return 'No timer set';
 	}
 
-	if (hours != null) {
-		formattedTimer += `${hours} hours, `;
-	}
-
-	if (minutes != null) {
-		formattedTimer += `${minutes} minutes`;
-	}
-	// If there are no minutes, the timer format will have a
-	// stranded comma at the end, so remove it
-	else {
-		formattedTimer = formattedTimer.replace(/,\s*$/, '');
-	}
-
-
-	return formattedTimer;
+	return `${timer.toReadableString()} left`;
 }
