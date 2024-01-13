@@ -17,7 +17,7 @@ module.exports = storage;
 
 // Parameter values come directly from the process.env object passed from the main index file.
 // Dotenv could be required as a module here, but this keeps it more abstracted.
-function connect({ DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_DIALECT }) {
+async function connect({ DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_DIALECT }) {
 	const Sequelize = require('sequelize');
 
 	// Initialize the database connection with our .env information
@@ -33,9 +33,17 @@ function connect({ DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOS
 			storage: 'database.sqlite',
 		},
 	);
+
+	try {
+		await storage.sequelize.authenticate();
+		console.log('Database connection has been established successfully.');
+	}
+	catch (error) {
+		console.error('Unable to connect to the database:', error);
+	}
 }
 
-function loadModels() {
+async function loadModels() {
 	const path = require('node:path');
 	const fs = require('node:fs');
 
@@ -60,6 +68,6 @@ function loadModels() {
 		});
 
 		// Create the model in the database if it doesn't exist
-		storage.models[modelName].sync();
+		await storage.models[modelName].sync();
 	}
 }
