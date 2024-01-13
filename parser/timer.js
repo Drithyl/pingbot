@@ -14,7 +14,7 @@ class Timer {
 		this.hoursLeft = hoursLeft;
 		this.minutesLeft = minutesLeft;
 		this.isNullTimer = true;
-		this.isBeingSetup = false;
+		this.isGameBeingSetUp = false;
 
 
 		// If at least one of the times left is a number,
@@ -32,7 +32,7 @@ class Timer {
 		// If the turn number given is specifically 0, then
 		// we think of it as being in the pretender submission lobby
 		if (turn === 0) {
-			this.isBeingSetup = true;
+			this.isGameBeingSetUp = true;
 		}
 	}
 
