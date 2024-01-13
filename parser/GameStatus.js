@@ -13,6 +13,7 @@ module.exports = class GameStatus {
 
 			this.timer = Timer.parseTimer(header);
 			this.turn = this.timer.turn;
+			this.isBeingSetUp = this.timer.isGameBeingSetUp;
 		}
 		catch (error) {
 			this.error = error;
