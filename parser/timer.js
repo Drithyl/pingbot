@@ -1,35 +1,148 @@
+const { matchFirstGroup } = require('../utils/utils');
+const { MissingHtmlError } = require('../errors/errors-index');
+
+const MS_IN_A_DAY = 86400000;
+const MS_IN_AN_HOUR = 3600000;
+const MS_IN_A_MINUTE = 60000;
+
+// Main class exported, which represents a Dominions timer,
+// but could represent a more general timer as well
+class Timer {
+	constructor(turn, daysLeft, hoursLeft, minutesLeft) {
+		this.turn = turn;
+		this.daysLeft = daysLeft;
+		this.hoursLeft = hoursLeft;
+		this.minutesLeft = minutesLeft;
+		this.isNullTimer = true;
+		this.isBeingSetup = false;
+
+
+		// If at least one of the times left is a number,
+		// then the timer isn't entirely null
+		if (isNaN(this.daysLeft) === false) {
+			this.isNullTimer = false;
+		}
+		else if (isNaN(this.hoursLeft) === false) {
+			this.isNullTimer = false;
+		}
+		else if (isNaN(this.minutesLeft) === false) {
+			this.isNullTimer = false;
+		}
+
+		// If the turn number given is specifically 0, then
+		// we think of it as being in the pretender submission lobby
+		if (turn === 0) {
+			this.isBeingSetup = true;
+		}
+	}
+
+	// Parse an input into a Timer object
+	static parseTimer(input) {
+		try {
+			if (typeof input === 'string') {
+				return _parseTimerFromText(input);
+			}
+		}
+
+		catch (error) {
+			console.error(error);
+			return new Timer();
+		}
+
+		return new Timer();
+	}
+
+	// Convert to ms left
+	toMs() {
+		const days = (isNaN(this.daysLeft)) ? 0 : this.daysLeft;
+		const hours = (isNaN(this.hoursLeft)) ? 0 : this.hoursLeft;
+		const minutes = (isNaN(this.minutesLeft)) ? 0 : this.minutesLeft;
+
+		return _daysToMs(days) + _hoursToMs(hours) + _minutesToMs(minutes);
+	}
+
+	// Convert the timer to a comma-separated readable string of text
+	toReadableString() {
+		let formattedTimer = '';
+
+		if (isNaN(this.daysLeft) === false) {
+			formattedTimer += `${this.daysLeft} days, `;
+		}
+
+		if (isNaN(this.hoursLeft) === false) {
+			formattedTimer += `${this.hoursLeft} hours, `;
+		}
+
+		if (isNaN(this.minutesLeft) === false) {
+			formattedTimer += `${this.minutesLeft} minutes`;
+		}
+		// If there are no minutes, the timer format will have a
+		// stranded comma at the end, so remove it
+		else {
+			formattedTimer = formattedTimer.replace(/,\s*$/, '');
+		}
+
+		return formattedTimer;
+	}
+}
+
+module.exports = Timer;
+
 // Dominions 6 lobby games expose their timer on the header of the HTML table.
 // The header HTML text looks like the following string when the timer is enabled:
 // 		myGameName, turn 1 (time left: 5 hours and 4 minutes)
 // Or like so if there is no timer:
 // 		myGameName, turn 61
-module.exports.parseTimer = function(tableHeaderText) {
-	const { matchFirstGroup } = require('../utils/utils');
+function _parseTimerFromText(text) {
 	const gameNameRegex = /(\w+),.+/;
 	const turnNumberRegex = /turn\s+(\d+)/;
 	const daysLeftRegex = /(\d+)\s+days/;
 	const hoursLeftRegex = /(\d+)\s+hours/;
 	const minutesLeftRegex = /(\d+)\s+minutes/;
+	const parsedTimer = {};
+
+	if (_isGameBeingSetUp(text) === true) {
+		parsedTimer.turnNumber = 0;
+		return parsedTimer;
+	}
 
 	// Extract each data individually. We could use a single match call for all data, but
 	// because some of that data might be missing from the header, it would be impossible
 	// to predict the length of the returning array and the order of the elements in it.
 	// The matchFirstGroup() utility also makes it easier to get the data group or null.
-	const gameName = matchFirstGroup(tableHeaderText, gameNameRegex);
-	const turnNumber = matchFirstGroup(tableHeaderText, turnNumberRegex);
-	const daysLeft = matchFirstGroup(tableHeaderText, daysLeftRegex);
-	const hoursLeft = matchFirstGroup(tableHeaderText, hoursLeftRegex);
-	const minutesLeft = matchFirstGroup(tableHeaderText, minutesLeftRegex);
+	const gameName = matchFirstGroup(text, gameNameRegex);
+	const turnNumber = parseInt(matchFirstGroup(text, turnNumberRegex));
+	const daysLeft = parseInt(matchFirstGroup(text, daysLeftRegex));
+	const hoursLeft = parseInt(matchFirstGroup(text, hoursLeftRegex));
+	const minutesLeft = parseInt(matchFirstGroup(text, minutesLeftRegex));
 
-	// We expect the header to at least always display the game name
+
+	// We expect the text to at least always display the game name
 	if (gameName == null) {
-		throw new Error(`Table header text provided does not contain a game name: '${tableHeaderText}'`);
+		throw new MissingHtmlError('Game name', text);
 	}
-	// We expect the header to at least always display the game's turn number
+	// We expect the text to at least always display the game's turn number
 	else if (turnNumber == null) {
-		throw new Error(`Table header text provided does not contain a turn number: '${tableHeaderText}'`);
+		throw new MissingHtmlError('Turn number', text);
 	}
 
-	// Return all relevant values
-	return { gameName, turnNumber, daysLeft, hoursLeft, minutesLeft };
-};
+	return new Timer(turnNumber, daysLeft, hoursLeft, minutesLeft);
+}
+
+// Parse a game's HTML table's header to check if it's still in pretender submission lobby
+function _isGameBeingSetUp(tableHeaderText) {
+	const setupMessage = 'Game is being setup';
+	return tableHeaderText.includes(setupMessage) === true;
+}
+
+function _daysToMs(days) {
+	return days * MS_IN_A_DAY;
+}
+
+function _hoursToMs(hours) {
+	return hours * MS_IN_AN_HOUR;
+}
+
+function _minutesToMs(minutes) {
+	return minutes * MS_IN_A_MINUTE;
+}
