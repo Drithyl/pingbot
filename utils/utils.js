@@ -4,6 +4,10 @@
 // the task of specifically matching for one group, and returning that one
 // group, or otherwise null if that group isn't found.
 module.exports.matchFirstGroup = function(string, matchRegex) {
+	if (typeof string !== 'string') {
+		return null;
+	}
+
 	const match = string.match(matchRegex);
 
 	// If no match, or if the returned array contains no elements
