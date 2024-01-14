@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { models } = require('../../storage/storage-index');
-const { GameStatus } = require('../../parser/parser-index');
+const { Storage } = require('../../storage/storage-index');
+const { GameStatusParser } = require('../../parser/parser-index');
 const { HttpRequestError, HttpServerError, MissingHtmlError } = require('../../errors/errors-index');
 
 module.exports = {
@@ -13,6 +13,7 @@ module.exports = {
 				.setRequired(true)),
 
 	async execute(interaction) {
+		const models = Storage.models;
 		const channelId = interaction.channelId;
 		const gameName = interaction.options.getString('name');
 		const guildId = interaction.guildId;
@@ -25,16 +26,18 @@ module.exports = {
 				return interaction.reply('The game is already being tracked in this channel.');
 			}
 
-			// Get the models for this game, if they exist
-			const oldGameStatus = await models.GameStatus.findOne({ where: { name: gameName } });
-			const newGameStatus = GameStatus.parseGameStatus(gameName);
+			// Get the model for this game, if it exists
+			const storedGameStatus = await models.GameStatus.findOne({ where: { name: gameName } });
+
+			// Parse the current game status from the webpage
+			const parsedGameStatus = GameStatusParser.parse(gameName);
 
 			// Create a model for our game status if one doesn't already exist
 			// All channel/game pairs will pull the status info from this record
-			if (oldGameStatus == null) {
+			if (storedGameStatus == null) {
 				await models.GameStatus.create({
 					name: gameName,
-					turn: newGameStatus.turn,
+					turn: parsedGameStatus.turn,
 				});
 			}
 

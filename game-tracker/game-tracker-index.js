@@ -1,11 +1,12 @@
-const { models } = require('../storage/storage-index');
-const { GameStatus } = require('../parser/parser-index');
+const { Storage } = require('../storage/storage-index');
+const { GameStatusParser } = require('../parser/parser-index');
+const GameStatusSnapshot = require('./GameStatusSnapshot');
 const { underline, bold } = require('../formatter/formatter-index');
 
 let trackingIntervalId;
 
 module.exports.resumeGameTracking = function(client) {
-	trackingIntervalId = setInterval(checkGameStatus, 60000, client);
+	trackingIntervalId = setInterval(checkGameStatus, process.env.MS_TO_UPDATE_GAME_STATUS, client);
 };
 
 module.exports.pauseGameTracking = function() {
@@ -13,48 +14,57 @@ module.exports.pauseGameTracking = function() {
 };
 
 async function checkGameStatus(client) {
-	const gameStatuses = await models.GameStatus.findAll();
+	const gameStatuses = await Storage.models.GameStatus.findAll();
 
 	// Iterate through all the game status records we have to update them
 	for (let i = 0; i < gameStatuses.length; i++) {
-		const oldgameStatus = gameStatuses[i];
-		const gameName = oldgameStatus.name;
-		const oldTurn = oldgameStatus.turn;
+		const storedGameStatus = gameStatuses[i];
+		const gameName = storedGameStatus.name;
 
-		const newGameStatus = await GameStatus.parseGameStatus(gameName);
-		const updatedTurn = newGameStatus.turn;
+		// Parse the current status of the game on the webpage
+		const parsedGameStatus = await GameStatusParser.parse(gameName);
+
+		// Create a snapshot that compares the last stored model and the current parsed status
+		const snapshot = new GameStatusSnapshot(storedGameStatus, parsedGameStatus);
 
 		// An error occurred while trying to parse the updated game status
-		if (newGameStatus.error) {
-			console.log(`${gameName}: ${newGameStatus.error.name} error when trying to update status - ${newGameStatus.error.message}`);
-			console.log(newGameStatus.error.stack);
+		if (parsedGameStatus.error) {
+			console.log(`${gameName}: ${parsedGameStatus.error.name} error when trying to update status - ${parsedGameStatus.error.message}`);
+			console.log(parsedGameStatus.error.stack);
 			continue;
 		}
 
+		// Test the db connection, then update turn number and/or timer ms left as needed
+		const connection = await Storage.connect();
+		const msLeft = parsedGameStatus.timer.toMs();
+		await connection.transaction(async () => {
+			if (snapshot.hasNoNewTurn === false) {
+				await storedGameStatus.update({ turn: snapshot.currentTurn });
+			}
+
+			if (msLeft != null && isNaN(msLeft) === false) {
+				await storedGameStatus.update({ msLeft });
+			}
+		});
+
 		// No new turn - no need to do anything. Continue onto the next game
-		if (updatedTurn === oldTurn) {
-			const formattedTimeLeft = _formatTimerAnnouncement(newGameStatus.timer);
+		if (snapshot.hasNoNewTurn === true) {
+			const formattedTimeLeft = _formatTimerAnnouncement(parsedGameStatus.timer);
 			console.log(`${gameName}: no new turn. ${formattedTimeLeft}.`);
 			continue;
 		}
 
-
-		// Some data that will be used to update the game status and notify channels of the turn change
-		const turnDifference = Math.abs(updatedTurn - oldTurn);
-		await oldgameStatus.increment('turn', { by: turnDifference });
-
 		// Iterate through all channels in which this game is tracked and notify them
 		await _notifyGameChannels(
 			client,
-			oldgameStatus,
-			newGameStatus,
+			snapshot,
 		);
 	}
 }
 
-async function _notifyGameChannels(client, oldStatusModel, newGameStatus) {
-	const gameTrackedInChannels = await models.GameTrackedInChannel.findAll({
-		where: { name: oldStatusModel.name },
+async function _notifyGameChannels(client, snapshot) {
+	const gameTrackedInChannels = await Storage.models.GameTrackedInChannel.findAll({
+		where: { name: snapshot.gameName },
 	});
 
 	for (let i = 0; i < gameTrackedInChannels.length; i++) {
@@ -67,34 +77,31 @@ async function _notifyGameChannels(client, oldStatusModel, newGameStatus) {
 		const channel = await client.channels.fetch(channelId);
 
 		// Send the notification to the channel
-		_notifyGameChannel(channel, oldStatusModel, newGameStatus);
+		await _notifyGameChannel(channel, snapshot);
 	}
 }
 
-function _notifyGameChannel(channel, oldStatusModel, newGameStatus) {
-	const oldTurn = oldStatusModel.turn;
-	const newTurn = newGameStatus.turn;
-
-	if (newTurn > oldTurn) {
-		return announceNewTurn(channel, newGameStatus);
+async function _notifyGameChannel(channel, snapshot) {
+	if (snapshot.hasNewTurn === true) {
+		return announceNewTurn(channel, snapshot);
 	}
-	else if (newTurn < oldTurn) {
-		return announceRollback(channel, newGameStatus);
+	else if (snapshot.hasRollback === true) {
+		return announceRollback(channel, snapshot);
 	}
 }
 
-async function announceNewTurn(channel, newGameStatus) {
-	const gameName = newGameStatus.name;
-	const turn = newGameStatus.turn;
-	const formattedTimer = _formatTimerAnnouncement(newGameStatus.timer);
+async function announceNewTurn(channel, snapshot) {
+	const gameName = snapshot.gameName;
+	const turn = snapshot.currentTurn;
+	const formattedTimer = _formatTimerAnnouncement(snapshot.currentTimer);
 	const str = `${underline(bold(gameName))}\nNew turn ${turn}\n${formattedTimer}.`;
 	return channel.send(str);
 }
 
-async function announceRollback(channel, newGameStatus) {
-	const gameName = newGameStatus.name;
-	const turn = newGameStatus.turn;
-	const formattedTimer = _formatTimerAnnouncement(newGameStatus.timer);
+async function announceRollback(channel, snapshot) {
+	const gameName = snapshot.gameName;
+	const turn = snapshot.currentTurn;
+	const formattedTimer = _formatTimerAnnouncement(snapshot.currentTimer);
 	const str = `${underline(bold(gameName))}\nRollbacked to turn ${turn}\n${formattedTimer}.`;
 	return channel.send(str);
 }

@@ -3,7 +3,7 @@ const Timer = require('./Timer');
 
 // Main class exported, which contains all the information
 // parsed from a Dominions 6 lobby game's HTML page
-module.exports = class GameStatus {
+module.exports = class GameStatusParser {
 	constructor(gameName, htmlRoot) {
 		this.name = gameName;
 		this.htmlRoot = htmlRoot;
@@ -20,9 +20,9 @@ module.exports = class GameStatus {
 		}
 	}
 
-	static async parseGameStatus(gameName) {
+	static async parse(gameName) {
 		const htmlRoot = await _parseDominionsStatusHTML(gameName);
-		return new GameStatus(gameName, htmlRoot);
+		return new GameStatusParser(gameName, htmlRoot);
 	}
 };
 

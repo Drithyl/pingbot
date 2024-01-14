@@ -1,11 +1,11 @@
 const html = require('./html');
-const GameStatus = require('./GameStatus');
+const GameStatusParser = require('./GameStatusParser');
 
 // Main object that will be exported, gathering
 // all functions from all other parser files
 const parser = {
 	...html,
-	GameStatus,
+	GameStatusParser,
 };
 
 module.exports = parser;

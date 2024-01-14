@@ -1,73 +1,88 @@
-// Main object that will be exported
-const storage = {
-	// Connect to the configured database
-	connect,
+const dotenv = require('dotenv');
+const Sequelize = require('sequelize');
 
-	// Create/sync all models
-	loadModels,
+dotenv.config();
 
-	// Main sequelize object will be stored here
-	sequelize: null,
+// Static class not meant to be initialized. It will handle all our storage needs.
+class Storage {
+	static #_connection = this.#_initializeConnection();
+	static models = {};
 
-	// All models will be stored here
-	models: {},
-};
-
-module.exports = storage;
-
-// Parameter values come directly from the process.env object passed from the main index file.
-// Dotenv could be required as a module here, but this keeps it more abstracted.
-async function connect({ DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, DATABASE_HOST, DATABASE_DIALECT }) {
-	const Sequelize = require('sequelize');
-
-	// Initialize the database connection with our .env information
-	storage.sequelize = new Sequelize(
-		DATABASE_NAME,
-		DATABASE_USER,
-		DATABASE_PASSWORD,
-		{
-			host: DATABASE_HOST,
-			dialect: DATABASE_DIALECT,
-			logging: false,
-			// Name of the database file when using sqlite as dialect
-			storage: 'database.sqlite',
-		},
-	);
-
-	try {
-		await storage.sequelize.authenticate();
-		console.log('Database connection has been established successfully.');
+	// Initialize the database connection with the .env information
+	static #_initializeConnection() {
+		return new Sequelize(
+			process.env.DATABASE_NAME,
+			process.env.DATABASE_USER,
+			process.env.DATABASE_PASSWORD,
+			{
+				host: process.env.DATABASE_HOST,
+				dialect: process.env.DATABASE_DIALECT,
+				logging: false,
+				// Name of the database file when using sqlite as dialect
+				storage: 'database.sqlite',
+			},
+		);
 	}
-	catch (error) {
-		console.error('Unable to connect to the database:', error);
+
+	// Use this function as an interface to return the actual private connection
+	// object. This forces clients of this class to always test the connection
+	// first through the private #_connect() method.
+	static async connect() {
+		await this.#_connect();
+		return this.#_connection;
 	}
-}
 
-async function loadModels() {
-	const path = require('node:path');
-	const fs = require('node:fs');
-
-	// Iterate through all our model files and create them in the database
-	const modelsPath = path.join(__dirname, 'models');
-	const modelFiles = fs.readdirSync(modelsPath).filter(file => file.endsWith('.js'));
-
-	for (const file of modelFiles) {
-		const filePath = path.join(modelsPath, file);
-		const modelStructure = require(filePath);
-		const modelName = modelStructure.name;
-
-		// Incorrect model structure
-		if (modelName === undefined || modelStructure.columns === undefined) {
-			console.error(`Model ${file} is missing modelName or columns definitions!`);
-			continue;
+	// Connect to the database using the initialized connection object.
+	// This should be called first before every use of the connected
+	// object, since it also tests if the connection is still OK.
+	static async #_connect() {
+		try {
+			await this.#_connection.authenticate();
+			console.log('Database connection has been established successfully.');
 		}
+		catch (error) {
+			console.error('Unable to connect to the database:', error);
+		}
+	}
 
-		// Define the model in sequelize using its data structure
-		storage.models[modelName] = storage.sequelize.define(modelName, {
-			...modelStructure.columns,
-		});
+	// Closes the connection to the database. Once this is called,
+	// the sequelize object needs to be recreated from scratch
+	static closeConnection() {
+		this.#_connection.close();
+	}
 
-		// Create the model in the database if it doesn't exist
-		await storage.models[modelName].sync();
+	// Load all of our model files and synchronize them with the database
+	static loadModels() {
+		const path = require('node:path');
+		const fs = require('node:fs');
+
+		// Iterate through all our model files and create them in the database
+		const modelsPath = path.join(__dirname, 'models');
+		const modelFiles = fs.readdirSync(modelsPath).filter(file => file.endsWith('.js'));
+
+		for (const file of modelFiles) {
+			const filePath = path.join(modelsPath, file);
+			const modelStructure = require(filePath);
+			const modelName = modelStructure.name;
+
+			// Incorrect model structure
+			if (modelName === undefined || modelStructure.columns === undefined) {
+				console.error(`Model ${file} is missing modelName or columns definitions!`);
+				continue;
+			}
+
+			// Define the model in sequelize using its data structure
+			this.models[modelName] = this.#_connection.define(modelName, {
+				...modelStructure.columns,
+			});
+		}
+	}
+
+	static async syncModels() {
+		// Creates the models in the database if they don't exist,
+		// or syncs their local data with the db otherwise
+		await this.#_connection.sync();
 	}
 }
+
+module.exports.Storage = Storage;

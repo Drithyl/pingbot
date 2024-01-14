@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { GameStatus } = require('../../parser/parser-index');
+const { GameStatusParser } = require('../../parser/parser-index');
 const { HttpRequestError, HttpServerError, MissingHtmlError } = require('../../errors/errors-index');
 
 module.exports = {
@@ -16,16 +16,16 @@ module.exports = {
 
 		try {
 			// Fetch the game's HTML status page and parse it into an object
-			const newGameStatus = await GameStatus.parseGameStatus(gameName);
-			const timer = newGameStatus.timer;
+			const parsedGameStatus = await GameStatusParser.parse(gameName);
+			const timer = parsedGameStatus.timer;
 
 			// If the game is in the pretender submission phase, there will be no timer
-			if (newGameStatus.isBeingSetUp === true) {
+			if (parsedGameStatus.isBeingSetUp === true) {
 				return interaction.reply('The game is being set up and hasn\'t started yet');
 			}
 
 			// Notify of the timer in the channel with proper formatting
-			return interaction.reply(`Turn ${newGameStatus.turn}\n${_formatTimerAnnouncement(timer)}.`);
+			return interaction.reply(`Turn ${parsedGameStatus.turn}\n${_formatTimerAnnouncement(timer)}.`);
 		}
 		catch (error) {
 			if (error.name === HttpServerError.name) {

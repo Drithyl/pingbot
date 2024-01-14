@@ -20,5 +20,9 @@ module.exports = {
 				max: 999,
 			},
 		},
+		msLeft: {
+			type: Sequelize.INTEGER,
+			allowNull: true,
+		},
 	},
 };

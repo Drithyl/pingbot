@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 const { Client, GatewayIntentBits } = require('discord.js');
 const readCommands = require('./commands/commands-index');
 const loadEvents = require('./events/events-index');
-const storage = require('./storage/storage-index');
 
 async function initialize() {
 	// Load the variables from the .env file into process.env. More information:
@@ -13,6 +12,7 @@ async function initialize() {
 
 	// Create a new client instance
 	const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+	const { Storage } = require('./storage/storage-index');
 
 	// Read all command files within all commands subfolders and assign the returning collection to our client
 	client.commands = readCommands();
@@ -21,10 +21,11 @@ async function initialize() {
 	loadEvents(client);
 
 	// Connect to the database configured in our .env file
-	await storage.connect(process.env);
+	await Storage.connect(process.env);
 
 	// Create/sync the data from the database
-	await storage.loadModels();
+	await Storage.loadModels();
+	Storage.syncModels();
 
 	// Log in to Discord with your client's token
 	client.login(process.env.DISCORD_TOKEN);
