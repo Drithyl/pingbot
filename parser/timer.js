@@ -54,6 +54,10 @@ class Timer {
 
 	// Convert to ms left
 	toMs() {
+		if (this.isNullTimer === true) {
+			return null;
+		}
+
 		const days = (isNaN(this.daysLeft)) ? 0 : this.daysLeft;
 		const hours = (isNaN(this.hoursLeft)) ? 0 : this.hoursLeft;
 		const minutes = (isNaN(this.minutesLeft)) ? 0 : this.minutesLeft;
