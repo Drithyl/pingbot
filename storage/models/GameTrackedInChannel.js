@@ -35,10 +35,12 @@ module.exports = {
 		wasTurnAnnounced: {
 			type: Sequelize.BOOLEAN,
 			allowNull: false,
+			defaultValue: false,
 		},
 		wasLastHourAnnounced: {
 			type: Sequelize.BOOLEAN,
 			allowNull: false,
+			defaultValue: false,
 		},
 	},
 };

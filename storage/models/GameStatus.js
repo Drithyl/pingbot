@@ -23,6 +23,7 @@ module.exports = {
 		lastTurn: {
 			type: Sequelize.TINYINT,
 			allowNull: false,
+			defaultValue: 0,
 			validate: {
 				min: 0,
 				max: 999,
