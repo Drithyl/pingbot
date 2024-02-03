@@ -134,4 +134,3 @@ function _isGameBeingSetUp(tableHeaderText) {
 	const setupMessage = 'Game is being setup';
 	return tableHeaderText.includes(setupMessage) === true;
 }
-
