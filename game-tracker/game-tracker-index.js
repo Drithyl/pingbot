@@ -1,7 +1,9 @@
 const { Storage } = require('../storage/storage-index');
 const { GameStatusParser } = require('../parser/parser-index');
 const GameStatusSnapshot = require('./GameStatusSnapshot');
-const { underline, bold } = require('../formatter/formatter-index');
+const { isTrueNumber } = require('../utils/utils-index');
+const customEvents = require('../events/custom-events');
+const { formatTimerAnnouncement } = require('../formatter/formatter-index');
 
 let trackingIntervalId;
 
@@ -34,82 +36,53 @@ async function checkGameStatus(client) {
 			continue;
 		}
 
-		// Test the db connection, then update turn number and/or timer ms left as needed
-		const connection = await Storage.connect();
-		const msLeft = parsedGameStatus.timer.toMs();
-		await connection.transaction(async () => {
-			if (snapshot.hasNoNewTurn === false) {
-				await storedGameStatus.update({ turn: snapshot.currentTurn });
-			}
+		// Updates the record of the status of this game, if needed
+		await _updateGameStatusRecord(storedGameStatus, snapshot);
 
-			if (msLeft != null && isNaN(msLeft) === false) {
-				await storedGameStatus.update({ msLeft });
-			}
-		});
+		// Decides if a game event has occurred that needs to be emitted
+		_checkForGameEvents(snapshot, client);
+	}
+}
 
-		// No new turn - no need to do anything. Continue onto the next game
-		if (snapshot.hasNoNewTurn === true) {
-			const formattedTimeLeft = _formatTimerAnnouncement(parsedGameStatus.timer);
-			console.log(`${gameName}: no new turn. ${formattedTimeLeft}.`);
-			continue;
+async function _updateGameStatusRecord(storedGameStatus, snapshot) {
+	// Test the db connection
+	const connection = await Storage.connect();
+	const msLeft = snapshot.currentTimer.toMs();
+
+	// Update turn number and/or timer ms left as needed
+	await connection.transaction(async () => {
+		if (snapshot.hasNoNewTurn === false) {
+			await storedGameStatus.update({ turn: snapshot.currentTurn });
 		}
 
-		// Iterate through all channels in which this game is tracked and notify them
-		await _notifyGameChannels(
-			client,
-			snapshot,
-		);
-	}
-}
-
-async function _notifyGameChannels(client, snapshot) {
-	const gameTrackedInChannels = await Storage.models.GameTrackedInChannel.findAll({
-		where: { name: snapshot.gameName },
+		if (isTrueNumber(msLeft) === true) {
+			await storedGameStatus.update({ msLeft });
+		}
 	});
-
-	for (let i = 0; i < gameTrackedInChannels.length; i++) {
-		// The model of a specific channel that's tracking this game
-		const gameTrackedInAChannel = gameTrackedInChannels[i];
-		const channelId = gameTrackedInAChannel.channelId;
-
-		// Fetch DiscordJS' channel object. They should technically all be cached,
-		// but it's a safer practice to assume that they are not
-		const channel = await client.channels.fetch(channelId);
-
-		// Send the notification to the channel
-		await _notifyGameChannel(channel, snapshot);
-	}
 }
 
-async function _notifyGameChannel(channel, snapshot) {
+function _checkForGameEvents(snapshot, client) {
+	// No new turn
+	if (snapshot.hasNoNewTurn === true) {
+		_logGameStatus(snapshot);
+
+		// Less than one hour left on the turn
+		if (snapshot.hasLessThanAnHourLeft === true) {
+			client.emit(customEvents.LAST_HOUR_LEFT, client, snapshot);
+		}
+	}
+
+	// New turn event
 	if (snapshot.hasNewTurn === true) {
-		return announceNewTurn(channel, snapshot);
+		client.emit(customEvents.NEW_TURN, client, snapshot);
 	}
+	// Turn rollbacked event
 	else if (snapshot.hasRollback === true) {
-		return announceRollback(channel, snapshot);
+		client.emit(customEvents.ROLLBACK_TURN, client, snapshot);
 	}
 }
 
-async function announceNewTurn(channel, snapshot) {
-	const gameName = snapshot.gameName;
-	const turn = snapshot.currentTurn;
-	const formattedTimer = _formatTimerAnnouncement(snapshot.currentTimer);
-	const str = `${underline(bold(gameName))}\nNew turn ${turn}\n${formattedTimer}.`;
-	return channel.send(str);
-}
-
-async function announceRollback(channel, snapshot) {
-	const gameName = snapshot.gameName;
-	const turn = snapshot.currentTurn;
-	const formattedTimer = _formatTimerAnnouncement(snapshot.currentTimer);
-	const str = `${underline(bold(gameName))}\nRollbacked to turn ${turn}\n${formattedTimer}.`;
-	return channel.send(str);
-}
-
-function _formatTimerAnnouncement(timer) {
-	if (timer.isNullTimer === true) {
-		return 'No timer set';
-	}
-
-	return `${timer.toReadableString()} left`;
+function _logGameStatus(snapshot) {
+	const formattedTimeLeft = formatTimerAnnouncement(snapshot.currentTimer);
+	console.log(`${snapshot.gameName}: no new turn. ${formattedTimeLeft}.`);
 }

@@ -1,9 +1,5 @@
-const { matchFirstGroup } = require('../utils/utils');
+const { matchFirstGroup, daysToMs, hoursToMs, minutesToMs } = require('../utils/utils-index');
 const { MissingHtmlError } = require('../errors/errors-index');
-
-const MS_IN_A_DAY = 86400000;
-const MS_IN_AN_HOUR = 3600000;
-const MS_IN_A_MINUTE = 60000;
 
 // Main class exported, which represents a Dominions timer,
 // but could represent a more general timer as well
@@ -62,7 +58,7 @@ class Timer {
 		const hours = (isNaN(this.hoursLeft)) ? 0 : this.hoursLeft;
 		const minutes = (isNaN(this.minutesLeft)) ? 0 : this.minutesLeft;
 
-		return _daysToMs(days) + _hoursToMs(hours) + _minutesToMs(minutes);
+		return daysToMs(days) + hoursToMs(hours) + minutesToMs(minutes);
 	}
 
 	// Convert the timer to a comma-separated readable string of text
@@ -139,14 +135,3 @@ function _isGameBeingSetUp(tableHeaderText) {
 	return tableHeaderText.includes(setupMessage) === true;
 }
 
-function _daysToMs(days) {
-	return days * MS_IN_A_DAY;
-}
-
-function _hoursToMs(hours) {
-	return hours * MS_IN_AN_HOUR;
-}
-
-function _minutesToMs(minutes) {
-	return minutes * MS_IN_A_MINUTE;
-}
