@@ -20,9 +20,20 @@ module.exports = {
 				max: 999,
 			},
 		},
+		lastTurn: {
+			type: Sequelize.TINYINT,
+			allowNull: false,
+			validate: {
+				min: 0,
+				max: 999,
+			},
+		},
 		msLeft: {
 			type: Sequelize.INTEGER,
 			allowNull: true,
+			validate: {
+				min: 0,
+			},
 		},
 	},
 };

@@ -32,5 +32,13 @@ module.exports = {
 				is: /^\d{18}$/,
 			},
 		},
+		wasTurnAnnounced: {
+			type: Sequelize.BOOLEAN,
+			allowNull: false,
+		},
+		wasLastHourAnnounced: {
+			type: Sequelize.BOOLEAN,
+			allowNull: false,
+		},
 	},
 };
