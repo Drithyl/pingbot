@@ -62,27 +62,30 @@ async function _updateGameStatusRecord(storedGameStatus, snapshot) {
 }
 
 function _checkForGameEvents(snapshot, client) {
-	// No new turn
-	if (snapshot.hasNoNewTurn === true) {
-		_logGameStatus(snapshot);
-
-		// Less than one hour left on the turn
-		if (snapshot.hasLessThanAnHourLeft === true) {
-			client.emit(customEvents.LAST_HOUR_LEFT, client, snapshot);
-		}
-	}
 
 	// New turn event
 	if (snapshot.hasNewTurn === true) {
+		_logGameStatus(snapshot, `new turn ${snapshot.currentTurn}`);
 		client.emit(customEvents.NEW_TURN, client, snapshot);
 	}
 	// Turn rollbacked event
 	else if (snapshot.hasRollback === true) {
+		_logGameStatus(snapshot, `rollback to turn ${snapshot.currentTurn}`);
 		client.emit(customEvents.ROLLBACK_TURN, client, snapshot);
+	}
+
+	if (snapshot.hasLessThanAnHourLeft === true) {
+		_logGameStatus(snapshot, 'less than an hour remains');
+		client.emit(customEvents.LAST_HOUR_LEFT, client, snapshot);
+	}
+
+	// No new turn
+	else if (snapshot.hasNoNewTurn === true) {
+		_logGameStatus(snapshot);
 	}
 }
 
-function _logGameStatus(snapshot) {
+function _logGameStatus(snapshot, logStr = '') {
 	const formattedTimeLeft = formatTimerAnnouncement(snapshot.currentTimer);
-	console.log(`${snapshot.gameName}: no new turn. ${formattedTimeLeft}.`);
+	console.log(`${snapshot.gameName} - \t${formattedTimeLeft}\t\t ${logStr}`);
 }
