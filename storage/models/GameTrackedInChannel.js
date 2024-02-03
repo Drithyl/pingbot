@@ -22,14 +22,14 @@ module.exports = {
 			// Discord IDs are strings of 18 digits
 			allowNull: false,
 			validate: {
-				is: /^\d{18}$/,
+				is: /^\d{17,20}$/,
 			},
 		},
 		guildId: {
 			type: Sequelize.STRING,
 			allowNull: false,
 			validate: {
-				is: /^\d{18}$/,
+				is: /^\d{17,20}$/,
 			},
 		},
 		wasTurnAnnounced: {
