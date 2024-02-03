@@ -1,4 +1,4 @@
-const { msToDays, isMoreThan, isLessOrEqualTo } = require('../utils/utils-index');
+const { isMoreOrEqualTo, isLessThan } = require('../utils/utils-index');
 const constants = require('../utils/constants');
 
 module.exports = class GameStatusSnapshot {
@@ -17,8 +17,8 @@ module.exports = class GameStatusSnapshot {
 		this.isBeingSetUp = this.currentTurn === 0;
 		this.prevKnownMsLeft = gameStatusModel.msLeft;
 		this.currentTimer = currentGameStatus.timer;
-		this.isPreviousTimerAboveLastHour = isMoreThan(msToDays(this.prevKnownMsLeft), constants.MS_IN_AN_HOUR);
-		this.isCurrentTimerBelowLastHour = isLessOrEqualTo(this.currentTimer.toMs(), constants.MS_IN_AN_HOUR);
-		this.hasLessThanAnHourLeft = this.isPreviousTimerAboveLastHour === true && this.isCurrentTimerBelowLastHour;
+		this.isPreviousTimerAnHourOrMore = isMoreOrEqualTo(this.prevKnownMsLeft, constants.MS_IN_AN_HOUR);
+		this.isCurrentTimerLessThanAnHour = isLessThan(this.currentTimer.toMs(), constants.MS_IN_AN_HOUR);
+		this.hasLessThanAnHourLeft = this.isPreviousTimerAnHourOrMore === true && this.isCurrentTimerLessThanAnHour === true;
 	}
 };

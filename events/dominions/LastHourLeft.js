@@ -14,6 +14,6 @@ async function _announceLastHourLeft(client, snapshot) {
 	const gameName = snapshot.gameName;
 	const turn = snapshot.currentTurn;
 	const formattedTimer = formatTimerAnnouncement(snapshot.currentTimer);
-	const message = `${underline(bold(gameName))}\nTurn ${turn}\nOnly ${formattedTimer} left!`;
+	const message = `${underline(bold(gameName))}\nTurn ${turn}\n${formattedTimer}\n\n${bold('Less than an hour left!')}`;
 	return notifyGameChannels(gameName, client, message);
 }
