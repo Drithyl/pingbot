@@ -2,8 +2,7 @@ const { Storage } = require('../storage/storage-index');
 const { GameStatusParser } = require('../parser/parser-index');
 const GameStatusSnapshot = require('./GameStatusSnapshot');
 const { isTrueNumber } = require('../utils/utils-index');
-const customEvents = require('../events/custom-events');
-const { formatTimerAnnouncement } = require('../formatter/formatter-index');
+const GameStatusSnapshotProcessor = require('./GameStatusSnapshotProcessor');
 
 let trackingIntervalId;
 
@@ -40,7 +39,7 @@ async function checkGameStatus(client) {
 		await _updateGameStatusRecord(storedGameStatus, snapshot);
 
 		// Decides if a game event has occurred that needs to be emitted
-		_checkForGameEvents(snapshot, client);
+		await GameStatusSnapshotProcessor.processStatusSnapshot(snapshot, client);
 	}
 }
 
@@ -59,33 +58,4 @@ async function _updateGameStatusRecord(storedGameStatus, snapshot) {
 			await storedGameStatus.update({ msLeft });
 		}
 	});
-}
-
-function _checkForGameEvents(snapshot, client) {
-
-	// New turn event
-	if (snapshot.hasNewTurn === true) {
-		_logGameStatus(snapshot, `new turn ${snapshot.currentTurn}`);
-		client.emit(customEvents.NEW_TURN, client, snapshot);
-	}
-	// Turn rollbacked event
-	else if (snapshot.hasRollback === true) {
-		_logGameStatus(snapshot, `rollback to turn ${snapshot.currentTurn}`);
-		client.emit(customEvents.ROLLBACK_TURN, client, snapshot);
-	}
-
-	if (snapshot.hasLessThanAnHourLeft === true) {
-		_logGameStatus(snapshot, 'less than an hour remains');
-		client.emit(customEvents.LAST_HOUR_LEFT, client, snapshot);
-	}
-
-	// No new turn
-	else if (snapshot.hasNoNewTurn === true) {
-		_logGameStatus(snapshot);
-	}
-}
-
-function _logGameStatus(snapshot, logStr = '') {
-	const formattedTimeLeft = formatTimerAnnouncement(snapshot.currentTimer);
-	console.log(`${snapshot.gameName} - \t${formattedTimeLeft}\t\t ${logStr}`);
 }

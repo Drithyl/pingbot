@@ -1,6 +1,7 @@
+const { EmbedBuilder } = require('discord.js');
 const { Storage } = require('../storage/storage-index');
 
-module.exports.notifyGameChannels = async function(gameName, client, message, afterNotification) {
+module.exports.notifyGameChannels = async function(gameName, client, message, afterNotification = null) {
 	const gameChannels = await Storage.models.GameTrackedInChannel.findAll({
 		where: { name: gameName },
 	});
@@ -15,7 +16,12 @@ module.exports.notifyGameChannels = async function(gameName, client, message, af
 		const channel = await client.channels.fetch(channelId);
 
 		// Send the notification to the channel
-		await channel.send(message);
+		if (message.constructor === EmbedBuilder) {
+			await channel.send({ embeds: [message] });
+		}
+		else {
+			await channel.send(message);
+		}
 
 		if (typeof afterNotification === 'function') {
 			await afterNotification(channel);
