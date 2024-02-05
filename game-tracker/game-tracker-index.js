@@ -57,5 +57,10 @@ async function _updateGameStatusRecord(storedGameStatus, snapshot) {
 		if (isTrueNumber(msLeft) === true) {
 			await storedGameStatus.update({ msLeft });
 		}
+		else if (snapshot.currentTimer.isNullTimer === true) {
+			await storedGameStatus.update({ msLeft: null });
+		}
+
+		await storedGameStatus.update({ lastChecked: new Date() });
 	});
 }

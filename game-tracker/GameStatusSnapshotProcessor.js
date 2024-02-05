@@ -25,6 +25,25 @@ module.exports = class GameStatusSnapshotProcessor {
 			await client.emit(customEvents.ROLLBACK_TURN, client, snapshot, eventMessage);
 		}
 
+		// Timer change related events
+		if (snapshot.timerDifference.wasPaused() === true) {
+			_logGameStatus(snapshot, 'timer was paused');
+			await client.emit(customEvents.TIMER_PAUSED, client, snapshot, eventMessage);
+		}
+		else if (snapshot.timerDifference.wasNewTimerSet() === true) {
+			_logGameStatus(snapshot, `timer was set to ${snapshot.currentTimer.toReadableString()}`);
+			await client.emit(customEvents.TIMER_SET, client, snapshot, eventMessage);
+		}
+		else if (snapshot.timerDifference.wasDecreased() === true) {
+			_logGameStatus(snapshot, `timer was decreased to ${snapshot.currentTimer.toReadableString()}`);
+			await client.emit(customEvents.TIMER_DECREASED, client, snapshot, eventMessage);
+		}
+		else if (snapshot.timerDifference.wasIncreased() === true) {
+			_logGameStatus(snapshot, `timer was increased to ${snapshot.currentTimer.toReadableString()}`);
+			await client.emit(customEvents.TIMER_INCREASED, client, snapshot, eventMessage);
+		}
+
+
 		if (snapshot.hasLessThanAnHourLeft === true) {
 			_logGameStatus(snapshot, 'less than an hour remains');
 			await client.emit(customEvents.LAST_HOUR_LEFT, client, snapshot, eventMessage);

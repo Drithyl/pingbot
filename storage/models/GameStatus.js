@@ -36,5 +36,10 @@ module.exports = {
 				min: 0,
 			},
 		},
+		lastChecked: {
+			type: Sequelize.DATE,
+			allowNull: false,
+			defaultValue: new Date(),
+		},
 	},
 };

@@ -1,5 +1,6 @@
 const { isMoreOrEqualTo, isLessThan } = require('../utils/utils-index');
 const constants = require('../utils/constants');
+const { TimerDifference } = require('../parser/TimerDifference');
 
 module.exports = class GameStatusSnapshot {
 	/**
@@ -20,5 +21,8 @@ module.exports = class GameStatusSnapshot {
 		this.isPreviousTimerAnHourOrMore = isMoreOrEqualTo(this.prevKnownMsLeft, constants.MS_IN_AN_HOUR);
 		this.isCurrentTimerLessThanAnHour = isLessThan(this.currentTimer.toMs(), constants.MS_IN_AN_HOUR);
 		this.hasLessThanAnHourLeft = this.isPreviousTimerAnHourOrMore === true && this.isCurrentTimerLessThanAnHour === true;
+
+		this.lastChecked = gameStatusModel.lastChecked;
+		this.timerDifference = new TimerDifference(this);
 	}
 };

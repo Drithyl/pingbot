@@ -11,6 +11,7 @@ class Timer {
 		this.minutesLeft = minutesLeft;
 		this.isNullTimer = true;
 		this.isGameBeingSetUp = false;
+		this.msLeft = this.toMs();
 
 
 		// If at least one of the times left is a number,
