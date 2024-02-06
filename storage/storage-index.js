@@ -81,7 +81,18 @@ class Storage {
 	static async syncModels() {
 		// Creates the models in the database if they don't exist,
 		// or syncs their local data with the db otherwise
-		await this.#_connection.sync();
+		await this.#_connection.sync({ alter: true });
+	}
+
+	static async forEvery(modelName, filterObj) {
+		const models = await this.models[modelName].findAll(filterObj);
+		return {
+			invoke: async function(fn) {
+				for (const model of models) {
+					await fn(model);
+				}
+			},
+		};
 	}
 }
 

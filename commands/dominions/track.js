@@ -19,7 +19,17 @@ module.exports = {
 		const guildId = interaction.guildId;
 
 		try {
+			const numberOfGamesBeingTracked = await models.GameStatus.count();
+			const numberOfChannelsTrackingGame = await models.GameTrackedInChannel.count({ where: { name: gameName } });
 			const gameTrackedInChannel = await models.GameTrackedInChannel.findOne({ where: { name: gameName, channelId } });
+
+			if (numberOfGamesBeingTracked >= +process.env.MAX_TRACKED_GAMES) {
+				return interaction.reply(`There are already too many games being tracked (${numberOfGamesBeingTracked})`);
+			}
+
+			if (numberOfChannelsTrackingGame >= +process.env.MAX_CHANNELS_FOR_TRACKED_GAME) {
+				return interaction.reply(`This game is already being tracked in too many channels (${numberOfChannelsTrackingGame}).`);
+			}
 
 			// If model for this game and channel pair exists, then it's already tracked
 			if (gameTrackedInChannel != null) {
