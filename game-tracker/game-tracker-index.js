@@ -1,7 +1,7 @@
 const { Storage } = require('../storage/storage-index');
 const { GameStatusParser } = require('../parser/parser-index');
 const GameStatusSnapshot = require('./GameStatusSnapshot');
-const { isTrueNumber } = require('../utils/utils-index');
+const { isTrueNumber } = require('../utilities/utilities-index');
 const GameStatusSnapshotProcessor = require('./GameStatusSnapshotProcessor');
 
 let trackingIntervalId;

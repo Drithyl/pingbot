@@ -1,6 +1,6 @@
 const { log } = require('../logger/logger-index');
 const customEvents = require('../events/custom-events');
-const { notifyGameChannels } = require('../utils/utils-index');
+const { notifyGameChannels } = require('../utilities/utilities-index');
 const { formatTimerAnnouncement } = require('../formatter/formatter-index');
 const EventMessage = require('./EventMessage');
 

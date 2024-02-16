@@ -1,5 +1,5 @@
-const { isMoreOrEqualTo, isLessThan } = require('../utils/utils-index');
-const constants = require('../utils/constants');
+const { isMoreOrEqualTo, isLessThan } = require('../utilities/utilities-index');
+const constants = require('../utilities/constants');
 const { TimerDifference } = require('../parser/TimerDifference');
 
 module.exports = class GameStatusSnapshot {

@@ -1,9 +1,9 @@
 const constants = require('./constants');
-const jsUtils = require('./js-utils');
-const discordUtils = require('./discord-utils');
+const jsUtils = require('./js-utilities');
+const discordUtils = require('./discord-utilities');
 
 // Main object that will be exported, gathering
-// all functions from all other utils files
+// all functions from all other utilities files
 const parser = {
 	constants,
 	...jsUtils,

@@ -1,4 +1,4 @@
-const { matchFirstGroup, daysToMs, hoursToMs, minutesToMs } = require('../utils/utils-index');
+const { matchFirstGroup, daysToMs, hoursToMs, minutesToMs } = require('../utilities/utilities-index');
 const { MissingHtmlError } = require('../errors/errors-index');
 
 // Main class exported, which represents a Dominions timer,

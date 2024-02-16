@@ -1,4 +1,4 @@
-const constants = require('../utils/constants');
+const constants = require('../utilities/constants');
 
 module.exports.TimerDifference = class TimerDifference {
 	/**

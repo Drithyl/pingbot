@@ -1,4 +1,4 @@
-const constants = require('../utils/constants');
+const constants = require('../utilities/constants');
 const { EmbedBuilder } = require('discord.js');
 const { formatTimerAnnouncement } = require('../formatter/formatter-index');
 
