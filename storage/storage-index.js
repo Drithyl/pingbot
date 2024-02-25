@@ -97,3 +97,4 @@ class Storage {
 }
 
 module.exports.Storage = Storage;
+module.exports.models = Storage.models;
