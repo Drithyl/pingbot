@@ -32,6 +32,13 @@ module.exports = {
 				is: /^\d{17,20}$/,
 			},
 		},
+		userId: {
+			type: Sequelize.STRING,
+			allowNull: false,
+			validate: {
+				is: /^\d{17,20}$/,
+			},
+		},
 		wasTurnAnnounced: {
 			type: Sequelize.BOOLEAN,
 			allowNull: false,
